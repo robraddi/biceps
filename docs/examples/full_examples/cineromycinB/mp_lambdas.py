@@ -13,10 +13,11 @@ print(f"Input data: {biceps.toolbox.list_extensions(input_data)}")
 outdir = '_results_test'
 biceps.toolbox.mkdir(outdir)
 ####### Parameters #######
-nsteps=1000000
-print(f"nSteps of sampling: {nsteps}")
+nsteps=10000
 maxtau = 1000
 n_lambdas = 3
+nreplicas = 3
+print(f"nSteps of sampling: {nsteps}\nnReplicas: {nreplicas}")
 lambda_values = np.linspace(0.0, 1.0, n_lambdas)
 parameters = [
         dict(ref="uniform", uncern=(0.05, 20.0, 1.02)),
@@ -27,7 +28,7 @@ print(pd.DataFrame(parameters))
 def mp_lambdas(Lambda):
     ensemble = biceps.Ensemble(Lambda, energies)
     ensemble.initialize_restraints(input_data, parameters)
-    sampler = biceps.PosteriorSampler(ensemble.to_list())
+    sampler = biceps.PosteriorSampler(ensemble.to_list(), nreplicas)
     sampler.sample(nsteps=nsteps, print_freq=1000, verbose=False)
     sampler.traj.process_results(outdir+'/traj_lambda%2.2f.npz'%(lam))
     filename = outdir+'/sampler_lambda%2.2f.pkl'%(lam)

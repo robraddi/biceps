@@ -235,6 +235,11 @@ class Restraint_cs(Restraint):
 
         self.compute_sse()
 
+    def get_error(self, f, index):
+        err = f[index]['model'] - f[index]['exp']
+        return err
+
+
     def compute_sse(self, debug=False):
         """Returns the (weighted) sum of squared errors for chemical shift values"""
 
@@ -243,7 +248,8 @@ class Restraint_cs(Restraint):
             if debug:
                 print('---->', i, '%d'%self.restraints[i].i, end=' ')
                 print('      exp', self.restraints[i]['exp'], 'model', self.restraints[i]['model'])
-            err = self.restraints[i]['model'] - self.restraints[i]['exp']
+            #err = self.restraints[i]['model'] - self.restraints[i]['exp']
+            err = self.get_error(self.restraints, i)
             sse += (self.restraints[i]['weight']*err**2.0)
             N += self.restraints[i]['weight']
         self.sse = sse
@@ -252,7 +258,7 @@ class Restraint_cs(Restraint):
             print('self.sse', self.sse)
 
 
-    def compute_neglogP(self, parameters, parameter_indices):
+    def compute_neglogP(self, parameters, parameter_indices, sse=None):
         """Computes :math:`-logP` for chemical shift during MCMC sampling.
 
         :math:`-ln P(X, \\sigma | D)=(N_{j}+1) \ln \sigma+\\chi^{2}(X) / 2 \\sigma^{2}-ln P(X) -ln Q_{ref}+(N_{j} / 2) ln 2 \pi + f_{i}`,
@@ -272,7 +278,10 @@ class Restraint_cs(Restraint):
         result = 0
         # Use with log-spaced sigma values
         result += (self.Ndof)*np.log(parameters[0])
-        result += self.sse / (2.0*float(parameters[0])**2.0)
+        if sse == None:
+            result += self.sse / (2.0*float(parameters[0])**2.0)
+        else:
+            result += sse / (2.0*float(parameters[0])**2.0)
         result += (self.Ndof)/2.0*np.log(2.0*np.pi)  # for normalization
         if self.ref == "exp":
             result -= self.sum_neglog_exp_ref
@@ -338,6 +347,10 @@ class Restraint_J(Restraint):
             for i in group:
                 self.restraints[i]['weight'] = 1.0/n
 
+    def get_error(self, f, index):
+        err = f[index]['model'] - f[index]['exp']
+        return err
+
     def compute_sse(self, debug=False):
         """Returns the (weighted) sum of squared errors"""
 
@@ -346,7 +359,8 @@ class Restraint_J(Restraint):
             if debug:
                 print('---->', i, '%d'%self.restraints[i].i, end=' ')
                 print('      exp', self.restraints[i]['exp'], 'model', self.restraints[i]['model'])
-            err = self.restraints[i]['model'] - self.restraints[i]['exp']
+            #err = self.restraints[i]['model'] - self.restraints[i]['exp']
+            err = self.get_error(self.restraints, i)
             sse += (self.restraints[i]['weight']*err**2.0)
             N += self.restraints[i]['weight']
         self.sse = sse
@@ -356,7 +370,7 @@ class Restraint_J(Restraint):
         #print(self.sse)
 
 
-    def compute_neglogP(self, parameters, parameter_indices):
+    def compute_neglogP(self, parameters, parameter_indices, sse=None):
         """Computes :math:`-logP` for scalar coupling constant during MCMC sampling.
 
         Args:
@@ -369,7 +383,10 @@ class Restraint_J(Restraint):
         result = 0
         # Use with log-spaced sigma values
         result += (self.Ndof)*np.log(parameters[0])
-        result += self.sse / (2.0*float(parameters[0])**2.0)
+        if sse == None:
+            result += self.sse / (2.0*float(parameters[0])**2.0)
+        else:
+            result += sse / (2.0*float(parameters[0])**2.0)
         result += (self.Ndof)/2.0*np.log(2.0*np.pi)  # for normalization
         if self.ref == "exp":
             result -= self.sum_neglog_exp_ref
@@ -447,6 +464,13 @@ class Restraint_noe(Restraint):
             for i in group:
                 self.restraints[i]['weight'] = 1.0/n
 
+    def get_error(self, f, index, gamma):
+        if self.use_log_normal_noe:
+            err = np.log(f[index]['model']/(gamma*f[index]['exp']))
+        else:
+            err = gamma*f[index]['exp'] - f[index]['model']
+        return err
+
     def compute_sse(self, debug=False):
         """Returns the (weighted) sum of squared errors"""
 
@@ -455,10 +479,7 @@ class Restraint_noe(Restraint):
             N,sse = 0.0, 0.0
             for i in range(self.n):
                 gamma = self.allowed_gamma[g]
-                if self.use_log_normal_noe:
-                    err = np.log(self.restraints[i]['model']/(gamma*self.restraints[i]['exp']))
-                else:
-                    err = gamma*self.restraints[i]['exp'] - self.restraints[i]['model']
+                err = self.get_error(self.restraints, i, gamma)
                 sse += (self.restraints[i]['weight'] * err**2.0)
                 N += self.restraints[i]['weight']
             self.sse[g] = sse
@@ -470,7 +491,7 @@ class Restraint_noe(Restraint):
         #print(self.sse)
 
 
-    def compute_neglogP(self, parameters, parameter_indices):
+    def compute_neglogP(self, parameters, parameter_indices, sse=None):
         """Computes :math:`-logP` for NOE during MCMC sampling.
 
         Args:
@@ -483,7 +504,10 @@ class Restraint_noe(Restraint):
         result = 0
         # Use with log-spaced sigma values
         result += (self.Ndof)*np.log(parameters[0])
-        result += self.sse[int(parameter_indices[1])] / (2.0*parameters[0]**2.0)
+        if sse == None:
+            result += self.sse[int(parameter_indices[1])] / (2.0*parameters[0]**2.0)
+        else:
+            result += sse / (2.0*parameters[0]**2.0)
         result += (self.Ndof)/2.0*np.log(2.0*np.pi)  # for normalization
         if self.ref == "exp":
             result -= self.sum_neglog_exp_ref
@@ -625,6 +649,9 @@ class Restraint_pf(Restraint):
                 self.restraints[-1]['weight'] = weight
         self.compute_sse(debug=False)
 
+    def get_error(self, f, index):
+        err = f[index]['model'] - f[index]['exp']
+        return err
 
     def compute_sse(self, debug=False):
         """Returns the (weighted) sum of squared errors"""
@@ -635,7 +662,8 @@ class Restraint_pf(Restraint):
                 if debug:
                     print('---->', i, '%d'%self.restraints[i].i, end=' ')
                     print('      exp', self.restraints[i]['exp'], 'model', self.restraints[i]['model'])
-                err = self.restraints[i]['model'] - self.restraints[i]['exp']
+                #err = self.restraints[i]['model'] - self.restraints[i]['exp']
+                err = self.get_error(self.restraints, i)
                 sse += (self.restraints[i]['weight']*err**2.0)
                 N += self.restraints[i]['weight']
             self.sse = sse
@@ -648,7 +676,8 @@ class Restraint_pf(Restraint):
                 len(self.allowed_xcs), len(self.allowed_xhs), len(self.allowed_bs)) )
             self.Ndof = 0.
             for i in range(self.n):
-                err = self.restraints[i]['model'] - self.restraints[i]['exp']
+                #err = self.restraints[i]['model'] - self.restraints[i]['exp']
+                err = self.get_error(self.restraints, i)
                 self.sse += (self.restraints[i]['weight'] * err**2.0)
                 self.Ndof += self.restraints[i]['weight']
 
@@ -762,7 +791,7 @@ class Restraint_pf(Restraint):
             self.sum_neglog_gaussian_ref += self.restraints[j]['weight'] * self.neglog_gaussian_ref[j]
 
 
-    def compute_neglogP(self, parameters, parameter_indices):
+    def compute_neglogP(self, parameters, parameter_indices, sse=None):
         """Computes :math:`-logP` for protection factor during MCMC sampling.
 
         Args:
@@ -776,11 +805,17 @@ class Restraint_pf(Restraint):
         # Use with log-spaced sigma values
         result += (self.Ndof)*np.log(parameters[0])
         if not self.precomputed:
-            result += self.sse[int(parameter_indices[1])][int(parameter_indices[2])][int(parameter_indices[3])][int(parameter_indices[4])][int(parameter_indices[5])][int(parameter_indices[6])] / (2.0*parameters[0]**2.0)
+            if sse == None:
+                result += self.sse[int(parameter_indices[1])][int(parameter_indices[2])][int(parameter_indices[3])][int(parameter_indices[4])][int(parameter_indices[5])][int(parameter_indices[6])] / (2.0*parameters[0]**2.0)
+            else:
+                result += sse / (2.0*parameters[0]**2.0)
             if self.pf_prior is not None:
                 result += self.pf_prior[int(parameter_indices[1])][int(parameter_indices[2])][int(parameter_indices[3])][int(parameter_indices[4])][int(parameter_indices[5])][int(parameter_indices[6])]
         else:
-            result += self.sse / (2.0*float(parameters[0])**2.0)
+            if sse == None:
+                result += self.sse / (2.0*float(parameters[0])**2.0)
+            else:
+                result += sse / (2.0*float(parameters[0])**2.0)
         result += (self.Ndof)/2.0*np.log(2.0*np.pi)  # for normalization
         # Which reference potential was used for each restraint?
         if self.ref == "exp":
