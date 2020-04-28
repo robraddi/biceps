@@ -52,7 +52,9 @@ class Analysis(object):
         for filename in exp_files:
             if debug:
                 print('Loading %s ...'%filename)
-            self.traj.append( np.load(filename, allow_pickle=True )['arr_0'].item() )
+            traj = np.load(filename, allow_pickle=True )['arr_0'].item()
+            self.traj.append(traj)
+        self.nreplicas = len(traj['trajectory'][0][3])
         if self.precheck:
             steps = []
             fractions = []
@@ -105,7 +107,8 @@ class Analysis(object):
         u_kln = np.zeros( (self.K, self.K, nsnaps) )
         nstates = int(self.states)
         print('nstates', nstates)
-        states_kn = np.zeros( (self.K, nsnaps) )
+        #states_kn = np.zeros( (self.K, nsnaps, self.nreplicas) )
+        states_kn = [[] for i in range(self.K)] #np.zeros( (self.K, nsnaps) )   Yunhui: make a list of lists for k lambdas
 
         # special treatment for neglogP function
         temp_parameters_indices = self.traj[0]['trajectory'][0][4:][0]
@@ -125,7 +128,7 @@ class Analysis(object):
                     if k==l:
                         u_kln[k,k,n] = self.traj[k]['trajectory'][n][1]
                     state, sigma_index = self.traj[k]['trajectory'][n][3:]
-                    states_kn[k,n] = state
+                    states_kn[k].append(state)
                     temp_parameters = []
                     new_parameters=[[] for i in range(len(temp_parameters_indices))]
                     temp_parameter_indices = np.concatenate(sigma_index)
@@ -162,8 +165,10 @@ class Analysis(object):
         self.P_dP = np.zeros( (nstates, 2*self.K) )  # left columns are P, right columns are dP
         if debug:
             print('state\tP\tdP')
+        states_kn = np.array(states_kn) # shape = (lambda,snapshots,replica)
         for i in range(nstates):
-            A_kn = np.where(states_kn==i,1,0)
+            sampled = np.array([np.where(states_kn[:,:,r]==i,1,0) for r in range(self.nreplicas)])
+            A_kn = sampled.sum(axis=0)
             (p_i, dp_i) = mbar.computeExpectations(A_kn, uncertainty_method='approximate')
             self.P_dP[i,0:self.K] = p_i
             self.P_dP[i,self.K:2*self.K] = dp_i

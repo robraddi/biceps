@@ -241,7 +241,6 @@ class PosteriorSampler(object):
             SSE(list): sum of squared errors for each restraint
         """
 
-        # NOTE: can we avoid recomuting SSEs? Didn't we do this initially?
         all_sse = []
         for k,R in enumerate(self.ensemble[0]): # loop through Restraints
             r = [[] for i in range(len(self.state))] # list for each replica
@@ -294,12 +293,9 @@ class PosteriorSampler(object):
             sse = self.compute_sse(states, extra_error_parameters)
         else:
             sse = [None for i in range(len(self.ensemble[0]))]
-        #print(sse)
-        #exit()
         for state in states:
             s = self.ensemble[int(state)] # Current Structure (list of restraints)
             result += s[0].energy + self.logZ  # Grab the free energy of the state and normalize
-        #FIXME need to go into each restraint and add the SSE term
         for i,R in enumerate(s):
             result += R.compute_neglogP(parameters[i], parameter_indices[i], sse[i])
         return result
@@ -399,9 +395,9 @@ class PosteriorSampler(object):
             # Store trajectory samples
             if step%self.traj_every == 0:
                 self.traj.trajectory.append( [int(step), float(self.E),
-                    int(self.accept), list(self.state), list(temp.copy())])
+                    int(self.accept), list(self.state.copy()), list(temp.copy())])
                     #int(self.accept), int(self.state), list(temp.copy())])
-                self.traj.traces.append(self.values)
+                self.traj.traces.append(self.values.copy())
 
             if verbose:
                 if step%print_freq == 0:

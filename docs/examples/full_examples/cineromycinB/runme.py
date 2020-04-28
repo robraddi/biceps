@@ -11,7 +11,7 @@ states = len(energies)
 print(f"Possible input data extensions: {biceps.toolbox.list_possible_extensions()}")
 input_data = biceps.toolbox.sort_data('cineromycin_B/J_NOE')
 print(f"Input data: {biceps.toolbox.list_extensions(input_data)}")
-outdir = '__results_test'
+outdir = '_results_test'
 biceps.toolbox.mkdir(outdir)
 ####### Parameters #######
 nsteps=100000
@@ -27,7 +27,7 @@ for lam in lambda_values:
     print(f"lambda: {lam}")
     ensemble = biceps.Ensemble(lam, energies)
     ensemble.initialize_restraints(input_data, parameters)
-    sampler = biceps.PosteriorSampler(ensemble.to_list(), nreplicas=10)
+    sampler = biceps.PosteriorSampler(ensemble.to_list(), nreplicas=1)
     #sampler.sample(nsteps, print_freq=1, verbose=True)
     sampler.sample(nsteps, verbose=True)
     sampler.traj.process_results(outdir+'/traj_lambda%2.2f.npz'%(lam))

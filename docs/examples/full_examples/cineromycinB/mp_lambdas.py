@@ -13,10 +13,10 @@ print(f"Input data: {biceps.toolbox.list_extensions(input_data)}")
 outdir = '_results_test'
 biceps.toolbox.mkdir(outdir)
 ####### Parameters #######
-nsteps=10000
+nsteps=10000000
 maxtau = 1000
-n_lambdas = 3
-nreplicas = 3
+n_lambdas = 2
+nreplicas = 1
 print(f"nSteps of sampling: {nsteps}\nnReplicas: {nreplicas}")
 lambda_values = np.linspace(0.0, 1.0, n_lambdas)
 parameters = [
@@ -58,6 +58,7 @@ for lam in lambda_values:
 for job in jobs:
     job.join() # will wait until the execution is over...
 p.close()
+
 
 '''
 ####### Convergence Check #######
