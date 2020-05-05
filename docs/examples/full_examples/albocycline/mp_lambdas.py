@@ -13,13 +13,14 @@ nstates = len(energies)
 dataFiles = 'albocycline/J_NOE'
 input_data = biceps.toolbox.sort_data(dataFiles)
 print(f"Input data: {biceps.toolbox.list_extensions(input_data)}")
-outdir = '_results'
+outdir = '100k_steps_2_replica_2_lam'#'_results'
 biceps.toolbox.mkdir(outdir)
 ####### Parameters #######
-nsteps=10000000
+nsteps=100000
 print(f"nSteps of sampling: {nsteps}")
 maxtau = 1000
-n_lambdas = 3
+n_lambdas = 2
+nreplicas = 2
 lambda_values = np.linspace(0.0, 1.0, n_lambdas)
 parameters = [
         {"ref": 'uniform', "sigma": (0.05, 20.0, 1.02)},
@@ -30,7 +31,7 @@ def mp_lambdas(Lambda):
     print(f"lambda: {Lambda}")
     ensemble = biceps.Ensemble(Lambda, energies)
     ensemble.initialize_restraints(input_data, parameters)
-    sampler = biceps.PosteriorSampler(ensemble.to_list())
+    sampler = biceps.PosteriorSampler(ensemble.to_list(), nreplicas)
     sampler.sample(nsteps=nsteps, verbose=False)
     sampler.traj.process_results(outdir+'/traj_lambda%2.2f.npz'%(Lambda))
     filename = outdir+'/sampler_lambda%2.2f.pkl'%(lam)

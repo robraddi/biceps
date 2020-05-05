@@ -10,13 +10,13 @@ states = len(energies)
 print(f"Possible input data extensions: {biceps.toolbox.list_possible_extensions()}")
 input_data = biceps.toolbox.sort_data('cineromycin_B/J_NOE')
 print(f"Input data: {biceps.toolbox.list_extensions(input_data)}")
-outdir = '_results_test'
-biceps.toolbox.mkdir(outdir)
 ####### Parameters #######
 nsteps=10000000
 maxtau = 1000
 n_lambdas = 2
 nreplicas = 1
+outdir = '%s_steps_%s_replica_%s_lam'%(nsteps, nreplicas, n_lambdas)
+biceps.toolbox.mkdir(outdir)
 print(f"nSteps of sampling: {nsteps}\nnReplicas: {nreplicas}")
 lambda_values = np.linspace(0.0, 1.0, n_lambdas)
 parameters = [
@@ -59,15 +59,13 @@ for job in jobs:
     job.join() # will wait until the execution is over...
 p.close()
 
-
 '''
 ####### Convergence Check #######
 C = biceps.Convergence(trajfile=outdir+"/traj_lambda0.00.npz", resultdir=outdir)
 C.get_autocorrelation_curves(method="normal", maxtau=maxtau)
-C.plot_auto_curve(fname="auto_curve.pdf", xlim=(0, maxtau))
+#C.plot_auto_curve(fname="auto_curve.pdf", xlim=(0, maxtau))
 C.process(nblock=5, nfold=10, nround=100, savefile=True,
     plot=True, block=True, normalize=True)
-
 '''
 
 ####### Posterior Analysis #######
